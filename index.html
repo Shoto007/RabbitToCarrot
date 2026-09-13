@@ -197,7 +197,7 @@
       <div class="topbar">
         <div class="stats">
           <div class="pill">ด่าน <span id="levelText">1</span></div>
-          <div class="pill">ก้าว <span id="steps">0</span> / <span id="maxSteps">20</span></div>
+          <div class="pill">ก้าว <span id="steps">0</span> / <span id="maxSteps">16</span></div>
         </div>
         <div id="stars">⭐⭐⭐</div>
       </div>
@@ -214,12 +214,12 @@
         <h2>🕹️ ควบคุม</h2>
         <div>ใช้ปุ่มลูกศรบนคีย์บอร์ด หรือปุ่มด้านล่าง</div>
         <div class="controls">
-          <button class="arrow empty"></button>
-          <button class="arrow" onclick="move(0,-1)">↑</button>
-          <button class="arrow empty"></button>
-          <button class="arrow" onclick="move(-1,0)">←</button>
-          <button class="arrow" onclick="move(0,1)">↓</button>
-          <button class="arrow" onclick="move(1,0)">→</button>
+          <button type="button" class="arrow empty"></button>
+          <button type="button" class="arrow" onclick="move(0,-1)">↑</button>
+          <button type="button" class="arrow empty"></button>
+          <button type="button" class="arrow" onclick="move(-1,0)">←</button>
+          <button type="button" class="arrow" onclick="move(0,1)">↓</button>
+          <button type="button" class="arrow" onclick="move(1,0)">→</button>
         </div>
       </div>
 
@@ -229,17 +229,16 @@
           🐰 กระต่าย = ผู้เล่น<br>
           🥕 แครอท = เป้าหมาย<br>
           🪨 ก้อนหิน = สิ่งกีดขวาง<br>
-          🌳 ต้นไม้ = สิ่งกีดขวาง<br>
           🕳️ หลุม = อันตราย
         </div>
       </div>
 
       <div class="card">
         <h2>🏆 ลีดเดอร์บอร์ด</h2>
-        <input id="playerName" maxlength="30" placeholder="ชื่อผู้เล่น"
+        <input id="playerName" maxlength="30" placeholder="ชื่อผู้เล่นของคุณ"
+          onchange="savePlayerName(this.value)"
           style="width:100%;padding:10px;border:1px solid #dce7ef;border-radius:10px;margin-bottom:8px;font:inherit;">
-        <button class="action" onclick="submitCurrentScore()">📤 ส่งคะแนน</button>
-        <button class="action secondary" style="margin-top:8px" onclick="loadLeaderboard()">🏆 ดูอันดับ</button>
+        <button type="button" class="action secondary" onclick="loadLeaderboard()">🔄 ดูอันดับคะแนน</button>
         <div id="leaderboard" style="margin-top:10px;font-size:14px;line-height:1.7;"></div>
       </div>
 
@@ -247,8 +246,8 @@
         <h2>💬 สถานะ</h2>
         <div class="message" id="message">พากระต่ายไปหาแครอทให้สำเร็จ!</div>
         <div class="actions" style="margin-top:10px">
-          <button class="action" onclick="resetLevel()">🔄 เริ่มด่านใหม่</button>
-          <button class="action secondary" onclick="showHelp()">❓ วิธีเล่น</button>
+          <button type="button" class="action" onclick="resetLevel()">🔄 เริ่มด่านใหม่</button>
+          <button type="button" class="action secondary" onclick="showHelp()">❓ วิธีเล่น</button>
         </div>
       </div>
     </aside>
@@ -260,8 +259,9 @@
     <div class="big">🐰🥕</div>
     <h2>ผ่านด่านแล้ว!</h2>
     <p id="winText"></p>
-    <button class="action" onclick="nextLevel()">➡️ ด่านถัดไป</button>
-    <button class="action secondary" style="margin-top:8px" onclick="closeWin()">เล่นด่านนี้อีกครั้ง</button>
+    <p id="saveStatus" style="font-size:14px;color:#2fa95b;font-weight:bold;"></p>
+    <button type="button" class="action" onclick="nextLevel()">➡️ ด่านถัดไป</button>
+    <button type="button" class="action secondary" style="margin-top:8px" onclick="closeWin()">เล่นด่านนี้อีกครั้ง</button>
   </div>
 </div>
 
@@ -274,12 +274,14 @@ const levels = [
   {
     size: 6, max: 16,
     rabbit: [0,0], carrot: [5,5],
-    blocks: [[1,0],[2,0],[2,1],[4,2],[4,3],[1,4],[2,4]]
+    blocks: [[1,0],[2,0],[2,1],[4,2],[4,3],[1,4],[2,4]],
+    holes: []
   },
   {
     size: 7, max: 20,
     rabbit: [0,0], carrot: [6,6],
-    blocks: [[1,0],[3,0],[3,1],[1,2],[4,2],[5,2],[1,4],[3,4],[5,5],[2,6]]
+    blocks: [[1,0],[3,0],[3,1],[1,2],[4,2],[5,2],[1,4],[3,4],[5,5],[2,6]],
+    holes: []
   },
   {
     size: 8, max: 24,
@@ -311,7 +313,20 @@ const levelsEl = document.getElementById("levels");
 const message = document.getElementById("message");
 
 function same(a,b) { return a[0] === b[0] && a[1] === b[1]; }
-function has(arr, pos) { return (arr || []).some(x => same(x,pos)); }
+function has(arr, pos) { return Array.isArray(arr) && arr.some(x => same(x, pos)); }
+
+function loadPlayerName() {
+  try {
+    const saved = localStorage.getItem("rabbit_player_name");
+    if (saved) document.getElementById("playerName").value = saved;
+  } catch(e) {}
+}
+
+function savePlayerName(val) {
+  try {
+    localStorage.setItem("rabbit_player_name", val.trim());
+  } catch(e) {}
+}
 
 function loadLevel(n) {
   currentLevel = n;
@@ -331,6 +346,7 @@ function renderLevels() {
   levelsEl.innerHTML = "";
   levels.forEach((_, i) => {
     const b = document.createElement("button");
+    b.type = "button";
     b.className = "level" + (i === currentLevel ? " active" : "");
     b.textContent = i + 1;
     b.onclick = () => loadLevel(i);
@@ -349,10 +365,10 @@ function render() {
       cell.className = "cell";
       const p = [x,y];
 
-      if (has(lv.blocks,p)) {
+      if (has(lv.blocks, p)) {
         cell.classList.add("block");
         cell.textContent = "🪨";
-      } else if (has(lv.holes,p)) {
+      } else if (has(lv.holes, p)) {
         cell.classList.add("hole");
         cell.textContent = "🕳️";
       } else {
@@ -383,11 +399,11 @@ function move(dx,dy) {
     message.textContent = "🚧 ออกนอกตารางไม่ได้!";
     return;
   }
-  if (has(lv.blocks,next)) {
+  if (has(lv.blocks, next)) {
     message.textContent = "🪨 มีสิ่งกีดขวาง! ลองเปลี่ยนเส้นทาง";
     return;
   }
-  if (has(lv.holes,next)) {
+  if (has(lv.holes, next)) {
     message.textContent = "🕳️ กระต่ายตกหลุม! เริ่มด่านใหม่";
     gameOver = true;
     setTimeout(resetLevel, 500);
@@ -404,6 +420,9 @@ function move(dx,dy) {
     const stars = steps <= lv.max * .55 ? 3 : steps <= lv.max * .8 ? 2 : 1;
     document.getElementById("winText").textContent =
       `คุณใช้ ${steps} ก้าว และได้ ${"⭐".repeat(stars)} ${"☆".repeat(3-stars)}`;
+    
+    // บันทึกคะแนนอัตโนมัติทันทีที่ชนะ
+    autoSubmitScore();
     setTimeout(() => document.getElementById("win").classList.add("show"), 180);
   } else if (steps >= lv.max) {
     gameOver = true;
@@ -414,7 +433,7 @@ function move(dx,dy) {
 
 function updateStars() {
   const lv = levels[currentLevel];
-  const stars = steps <= lv.max * .55 ? 3 : steps <= lv.max * .8 ? 2 : 1;
+  const stars = steps <= lv.max*.55 ? 3 : steps <= lv.max*.8 ? 2 : 1;
   document.getElementById("stars").textContent = "⭐".repeat(stars) + "☆".repeat(3-stars);
 }
 
@@ -428,18 +447,15 @@ function nextLevel() {
   }
 }
 
-async function submitCurrentScore() {
-  const nameEl = document.getElementById("playerName");
-  const name = nameEl.value.trim();
+// ฟังก์ชันส่งคะแนนอัตโนมัติ
+async function autoSubmitScore() {
+  const nameInput = document.getElementById("playerName");
+  let name = nameInput.value.trim();
   if (!name) {
-    alert("กรุณาใส่ชื่อผู้เล่นก่อนส่งคะแนน");
-    nameEl.focus();
-    return;
+    name = "ผู้เล่นไม่ระบุชื่อ";
   }
 
-  const lv = levels[currentLevel];
   const score = Math.max(0, 1000 - (steps * 20) - (currentLevel * 50));
-
   const data = {
     name: name,
     score: score,
@@ -448,8 +464,8 @@ async function submitCurrentScore() {
     time: new Date().toISOString()
   };
 
-  const box = document.getElementById("leaderboard");
-  box.textContent = "กำลังส่งคะแนน...";
+  const statusEl = document.getElementById("saveStatus");
+  if (statusEl) statusEl.textContent = "⏳ กำลังบันทึกคะแนนอัตโนมัติ...";
 
   try {
     await fetch(GOOGLE_SCRIPT_URL, {
@@ -458,9 +474,10 @@ async function submitCurrentScore() {
       headers: {"Content-Type": "text/plain;charset=utf-8"},
       body: JSON.stringify(data)
     });
-    box.textContent = "ส่งคะแนนแล้ว! กด 'ดูอันดับ' เพื่อโหลดคะแนน";
+    if (statusEl) statusEl.textContent = "✅ บันทึกลงลีดเดอร์บอร์ดเรียบร้อยแล้ว!";
+    loadLeaderboard();
   } catch (err) {
-    box.textContent = "ส่งคะแนนไม่สำเร็จ กรุณาตรวจสอบ URL Apps Script";
+    if (statusEl) statusEl.textContent = "⚠️ ไม่สามารถบันทึกคะแนนอัตโนมัติได้";
   }
 }
 
@@ -492,7 +509,7 @@ function escapeHtml(s) {
 }
 
 function showHelp() {
-  alert("วิธีเล่น\n\n1. ใช้ปุ่มลูกศรเพื่อขยับกระต่าย\n2. ห้ามชนก้อนหินหรือต้นไม้\n3. ห้ามตกหลุม\n4. ไปถึงแครอทเพื่อผ่านด่าน\n5. พยายามใช้จำนวนก้าวให้น้อยที่สุดเพื่อได้ 3 ดาว");
+  alert("วิธีเล่น\n\n1. ใช้ปุ่มลูกศรเพื่อขยับกระต่าย\n2. ห้ามชนก้อนหินหรือต้นไม้\n3. ห้ามตกหลุม\n4. ไปถึงแครอทเพื่อผ่านด่านและบันทึกคะแนนอัตโนมัติ\n5. พยายามใช้จำนวนก้าวให้น้อยที่สุดเพื่อได้ 3 ดาว");
 }
 
 document.addEventListener("keydown", e => {
@@ -507,7 +524,10 @@ document.addEventListener("keydown", e => {
   if (e.key.toLowerCase() === "r") resetLevel();
 });
 
+// เริ่มต้นโหลดเกม
+loadPlayerName();
 loadLevel(0);
+loadLeaderboard();
 </script>
 </body>
 </html>
