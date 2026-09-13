@@ -150,17 +150,19 @@
     font-weight: 600;
   }
   .legend { line-height: 1.9; }
-  .win {
+
+  /* Modal Styles */
+  .modal-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(20,45,25,.62);
+    background: rgba(20,45,25,.65);
     display: none;
     align-items: center;
     justify-content: center;
     padding: 20px;
-    z-index: 5;
+    z-index: 100;
   }
-  .win.show { display: flex; }
+  .modal-overlay.show { display: flex; }
   .modal {
     background: white;
     width: min(420px, 100%);
@@ -169,8 +171,21 @@
     text-align: center;
     box-shadow: 0 20px 60px rgba(0,0,0,.3);
   }
-  .modal .big { font-size: 70px; }
-  .modal h2 { margin: 5px 0; color: #25904a; }
+  .modal .big { font-size: 65px; margin-bottom: 5px; }
+  .modal h2 { margin: 5px 0 10px; color: #25904a; }
+  .modal input {
+    width: 100%;
+    padding: 12px;
+    border: 2px solid #bde98b;
+    border-radius: 12px;
+    font-size: 16px;
+    margin: 15px 0;
+    outline: none;
+    text-align: center;
+    font-weight: 600;
+  }
+  .modal input:focus { border-color: #32b768; }
+
   @media (max-width: 800px) {
     .layout { grid-template-columns: 1fr; }
     .side { display: grid; grid-template-columns: 1fr 1fr; }
@@ -184,11 +199,26 @@
 </style>
 </head>
 <body>
+
+<!-- ป๊อปอัปให้กรอกชื่อก่อนเล่น -->
+<div class="modal-overlay show" id="startModal">
+  <div class="modal">
+    <div class="big">🐰🥕</div>
+    <h2>ยินดีต้อนรับสู่เกม!</h2>
+    <p style="color:#555;margin:0;">กรุณาระบุชื่อผู้เล่นเพื่อเริ่มผจญภัยและบันทึกคะแนน</p>
+    <input type="text" id="initPlayerName" placeholder="พิมพ์ชื่อของคุณที่นี่..." maxlength="25" autofocus>
+    <button type="button" class="action" style="width:100%;font-size:16px;" onclick="startGameWithName()">🚀 เริ่มเล่นเกม</button>
+  </div>
+</div>
+
 <div class="game">
   <header>
     <div>
       <h1>🐰 พากระต่ายไปหาแครอท 🥕</h1>
       <div class="subtitle">เกม Puzzle ฝึกการคิดเชิงตรรกะและการวางแผนเส้นทาง</div>
+    </div>
+    <div class="pill" style="color:#26364a;font-weight:700;background:#fff;border-radius:999px;padding:8px 16px;">
+      👤 ผู้เล่น: <span id="displayPlayerName">-</span>
     </div>
   </header>
 
@@ -235,10 +265,7 @@
 
       <div class="card">
         <h2>🏆 ลีดเดอร์บอร์ด</h2>
-        <input id="playerName" maxlength="30" placeholder="ชื่อผู้เล่นของคุณ"
-          onchange="savePlayerName(this.value)"
-          style="width:100%;padding:10px;border:1px solid #dce7ef;border-radius:10px;margin-bottom:8px;font:inherit;">
-        <button type="button" class="action secondary" onclick="loadLeaderboard()">🔄 ดูอันดับคะแนน</button>
+        <button type="button" class="action secondary" style="width:100%" onclick="loadLeaderboard()">🔄 โหลดอันดับคะแนน</button>
         <div id="leaderboard" style="margin-top:10px;font-size:14px;line-height:1.7;"></div>
       </div>
 
@@ -247,21 +274,22 @@
         <div class="message" id="message">พากระต่ายไปหาแครอทให้สำเร็จ!</div>
         <div class="actions" style="margin-top:10px">
           <button type="button" class="action" onclick="resetLevel()">🔄 เริ่มด่านใหม่</button>
-          <button type="button" class="action secondary" onclick="showHelp()">❓ วิธีเล่น</button>
+          <button type="button" class="action secondary" onclick="changePlayer()">👤 เปลี่ยนชื่อผู้เล่น</button>
         </div>
       </div>
     </aside>
   </div>
 </div>
 
-<div class="win" id="win">
+<!-- ป๊อปอัปแจ้งผ่านด่าน -->
+<div class="modal-overlay" id="win">
   <div class="modal">
     <div class="big">🐰🥕</div>
     <h2>ผ่านด่านแล้ว!</h2>
     <p id="winText"></p>
     <p id="saveStatus" style="font-size:14px;color:#2fa95b;font-weight:bold;"></p>
-    <button type="button" class="action" onclick="nextLevel()">➡️ ด่านถัดไป</button>
-    <button type="button" class="action secondary" style="margin-top:8px" onclick="closeWin()">เล่นด่านนี้อีกครั้ง</button>
+    <button type="button" class="action" style="width:100%" onclick="nextLevel()">➡️ ด่านถัดไป</button>
+    <button type="button" class="action secondary" style="margin-top:8px;width:100%" onclick="closeWin()">เล่นด่านนี้อีกครั้ง</button>
   </div>
 </div>
 
@@ -307,6 +335,8 @@ let currentLevel = 0;
 let rabbit = [0,0];
 let steps = 0;
 let gameOver = false;
+let currentPlayer = "";
+let isGameStarted = false;
 
 const board = document.getElementById("board");
 const levelsEl = document.getElementById("levels");
@@ -315,17 +345,31 @@ const message = document.getElementById("message");
 function same(a,b) { return a[0] === b[0] && a[1] === b[1]; }
 function has(arr, pos) { return Array.isArray(arr) && arr.some(x => same(x, pos)); }
 
-function loadPlayerName() {
+// จัดการชื่อผู้เล่น
+function startGameWithName() {
+  const input = document.getElementById("initPlayerName");
+  const name = input.value.trim();
+  if (!name) {
+    alert("กรุณากรอกชื่อผู้เล่นก่อนเริ่มเล่นครับ");
+    input.focus();
+    return;
+  }
+  currentPlayer = name;
   try {
-    const saved = localStorage.getItem("rabbit_player_name");
-    if (saved) document.getElementById("playerName").value = saved;
+    localStorage.setItem("rabbit_player_name", name);
   } catch(e) {}
+
+  document.getElementById("displayPlayerName").textContent = currentPlayer;
+  document.getElementById("startModal").classList.remove("show");
+  isGameStarted = true;
+  loadLevel(0);
+  loadLeaderboard();
 }
 
-function savePlayerName(val) {
-  try {
-    localStorage.setItem("rabbit_player_name", val.trim());
-  } catch(e) {}
+function changePlayer() {
+  isGameStarted = false;
+  document.getElementById("initPlayerName").value = currentPlayer;
+  document.getElementById("startModal").classList.add("show");
 }
 
 function loadLevel(n) {
@@ -349,7 +393,10 @@ function renderLevels() {
     b.type = "button";
     b.className = "level" + (i === currentLevel ? " active" : "");
     b.textContent = i + 1;
-    b.onclick = () => loadLevel(i);
+    b.onclick = () => {
+      if (!isGameStarted) return;
+      loadLevel(i);
+    };
     levelsEl.appendChild(b);
   });
 }
@@ -391,7 +438,7 @@ function render() {
 }
 
 function move(dx,dy) {
-  if (gameOver) return;
+  if (!isGameStarted || gameOver) return;
   const lv = levels[currentLevel];
   const next = [rabbit[0] + dx, rabbit[1] + dy];
 
@@ -421,7 +468,7 @@ function move(dx,dy) {
     document.getElementById("winText").textContent =
       `คุณใช้ ${steps} ก้าว และได้ ${"⭐".repeat(stars)} ${"☆".repeat(3-stars)}`;
     
-    // บันทึกคะแนนอัตโนมัติทันทีที่ชนะ
+    // เซฟคะแนนอัตโนมัติ
     autoSubmitScore();
     setTimeout(() => document.getElementById("win").classList.add("show"), 180);
   } else if (steps >= lv.max) {
@@ -437,8 +484,13 @@ function updateStars() {
   document.getElementById("stars").textContent = "⭐".repeat(stars) + "☆".repeat(3-stars);
 }
 
-function resetLevel() { loadLevel(currentLevel); }
+function resetLevel() {
+  if (!isGameStarted) return;
+  loadLevel(currentLevel);
+}
+
 function closeWin() { document.getElementById("win").classList.remove("show"); }
+
 function nextLevel() {
   closeWin();
   if (currentLevel < levels.length - 1) loadLevel(currentLevel + 1);
@@ -449,15 +501,9 @@ function nextLevel() {
 
 // ฟังก์ชันส่งคะแนนอัตโนมัติ
 async function autoSubmitScore() {
-  const nameInput = document.getElementById("playerName");
-  let name = nameInput.value.trim();
-  if (!name) {
-    name = "ผู้เล่นไม่ระบุชื่อ";
-  }
-
   const score = Math.max(0, 1000 - (steps * 20) - (currentLevel * 50));
   const data = {
-    name: name,
+    name: currentPlayer,
     score: score,
     level: currentLevel + 1,
     steps: steps,
@@ -474,7 +520,7 @@ async function autoSubmitScore() {
       headers: {"Content-Type": "text/plain;charset=utf-8"},
       body: JSON.stringify(data)
     });
-    if (statusEl) statusEl.textContent = "✅ บันทึกลงลีดเดอร์บอร์ดเรียบร้อยแล้ว!";
+    if (statusEl) statusEl.textContent = "✅ บันทึกคะแนนลงลีดเดอร์บอร์ดเรียบร้อยแล้ว!";
     loadLeaderboard();
   } catch (err) {
     if (statusEl) statusEl.textContent = "⚠️ ไม่สามารถบันทึกคะแนนอัตโนมัติได้";
@@ -508,14 +554,18 @@ function escapeHtml(s) {
   }[c]));
 }
 
-function showHelp() {
-  alert("วิธีเล่น\n\n1. ใช้ปุ่มลูกศรเพื่อขยับกระต่าย\n2. ห้ามชนก้อนหินหรือต้นไม้\n3. ห้ามตกหลุม\n4. ไปถึงแครอทเพื่อผ่านด่านและบันทึกคะแนนอัตโนมัติ\n5. พยายามใช้จำนวนก้าวให้น้อยที่สุดเพื่อได้ 3 ดาว");
-}
+// รองรับการกด Enter ตอนพิมพ์ชื่อ
+document.getElementById("initPlayerName").addEventListener("keydown", e => {
+  if (e.key === "Enter") startGameWithName();
+});
 
+// บังคับคีย์บอร์ดเดิน
 document.addEventListener("keydown", e => {
+  if (!isGameStarted) return;
   const keys = {
     ArrowUp:[0,-1], ArrowDown:[0,1],
-    ArrowLeft:[-1,0], ArrowRight:[1,0]
+    ArrowLeft:[-1,0], ArrowRight:[1,0],
+    w:[0,-1], s:[0,1], a:[-1,0], d:[1,0]
   };
   if (keys[e.key]) {
     e.preventDefault();
@@ -524,10 +574,11 @@ document.addEventListener("keydown", e => {
   if (e.key.toLowerCase() === "r") resetLevel();
 });
 
-// เริ่มต้นโหลดเกม
-loadPlayerName();
-loadLevel(0);
-loadLeaderboard();
+// ตรวจสอบชื่อเดิมในเครื่อง ถ้ามีจะกรอกใส่ช่องให้อัตโนมัติ
+try {
+  const saved = localStorage.getItem("rabbit_player_name");
+  if (saved) document.getElementById("initPlayerName").value = saved;
+} catch(e) {}
 </script>
 </body>
 </html>
