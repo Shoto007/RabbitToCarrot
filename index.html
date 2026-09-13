@@ -267,8 +267,6 @@
 
 <script>
 // ================= GOOGLE SHEETS =================
-// 1) สร้าง Google Sheet และ Deploy Apps Script เป็น Web app
-// 2) นำ URL /exec มาใส่ด้านล่าง
 const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxvzlgwLzjV5sC3ARFNA0Liy25C0o4JTCLKN4IsUnD6GLAUqTM-KnBi9w2z2kKf89WwYw/exec";
 // =================================================
 
@@ -353,7 +351,7 @@ function render() {
 
       if (has(lv.blocks,p)) {
         cell.classList.add("block");
-        cell.textContent = Math.random() > -1 ? "🪨" : "";
+        cell.textContent = "🪨";
       } else if (has(lv.holes,p)) {
         cell.classList.add("hole");
         cell.textContent = "🕳️";
@@ -416,7 +414,7 @@ function move(dx,dy) {
 
 function updateStars() {
   const lv = levels[currentLevel];
-  const stars = steps <= lv.max*.55 ? 3 : steps <= lv.max*.8 ? 2 : 1;
+  const stars = steps <= lv.max * .55 ? 3 : steps <= lv.max * .8 ? 2 : 1;
   document.getElementById("stars").textContent = "⭐".repeat(stars) + "☆".repeat(3-stars);
 }
 
@@ -438,13 +436,8 @@ async function submitCurrentScore() {
     nameEl.focus();
     return;
   }
-  if (GOOGLE_SCRIPT_URL.includes("ใส่_URL")) {
-    alert("ยังไม่ได้ตั้งค่า GOOGLE_SCRIPT_URL ในไฟล์เกม");
-    return;
-  }
 
   const lv = levels[currentLevel];
-  // คะแนนหลัก: ใช้จำนวนก้าวน้อยยิ่งได้คะแนนมาก
   const score = Math.max(0, 1000 - (steps * 20) - (currentLevel * 50));
 
   const data = {
@@ -472,11 +465,6 @@ async function submitCurrentScore() {
 }
 
 async function loadLeaderboard() {
-  if (GOOGLE_SCRIPT_URL.includes("ใส่_URL")) {
-    alert("ยังไม่ได้ตั้งค่า GOOGLE_SCRIPT_URL ในไฟล์เกม");
-    return;
-  }
-
   const box = document.getElementById("leaderboard");
   box.textContent = "กำลังโหลดอันดับ...";
 
@@ -484,7 +472,7 @@ async function loadLeaderboard() {
     const response = await fetch(GOOGLE_SCRIPT_URL + "?action=leaderboard");
     const rows = await response.json();
 
-    if (!rows.length) {
+    if (!rows || !rows.length) {
       box.textContent = "ยังไม่มีคะแนน";
       return;
     }
@@ -503,11 +491,8 @@ function escapeHtml(s) {
   }[c]));
 }
 
-loadLevel(0);
-  }
-}
 function showHelp() {
-  alert("วิธีเล่น\\n\\n1. ใช้ปุ่มลูกศรเพื่อขยับกระต่าย\\n2. ห้ามชนก้อนหินหรือต้นไม้\\n3. ห้ามตกหลุม\\n4. ไปถึงแครอทเพื่อผ่านด่าน\\n5. พยายามใช้จำนวนก้าวให้น้อยที่สุดเพื่อได้ 3 ดาว");
+  alert("วิธีเล่น\n\n1. ใช้ปุ่มลูกศรเพื่อขยับกระต่าย\n2. ห้ามชนก้อนหินหรือต้นไม้\n3. ห้ามตกหลุม\n4. ไปถึงแครอทเพื่อผ่านด่าน\n5. พยายามใช้จำนวนก้าวให้น้อยที่สุดเพื่อได้ 3 ดาว");
 }
 
 document.addEventListener("keydown", e => {
@@ -521,7 +506,6 @@ document.addEventListener("keydown", e => {
   }
   if (e.key.toLowerCase() === "r") resetLevel();
 });
-
 
 loadLevel(0);
 </script>
